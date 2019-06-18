@@ -11,7 +11,7 @@ Base on the doc from official https://developer.algorand.org/docs/introduction-i
 1. Build docker image
     ```bash
     cd docker/releases
-    docker build -f Dockerfile-testnet . -t algorand/testnet-telem:latest
+    docker build -f Dockerfile-testnet . -t algorand/testnet
     ```
 1. Create a Docker container
     * prepare configuration file
