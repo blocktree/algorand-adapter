@@ -29,7 +29,7 @@ Base on the doc from official https://developer.algorand.org/docs/introduction-i
         ```
     * start a container
     ```bash
-    docker run -it -d -v <root-path>/data:/root/node/data --name algorand algorand/testnet
+    docker run -it -d -v <root-path>/data:/root/node/data --name algorand algorand/testnet-telem:latest
     ```
 1. Sync Node with Network
     * run goal
