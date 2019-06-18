@@ -11,12 +11,12 @@ Base on the doc from official https://developer.algorand.org/docs/introduction-i
 1. Build docker image
     ```bash
     cd docker/releases
-    docker build -f Dockerfile-testnet . -t algorand/testnet
+    docker build -f Dockerfile-testnet . -t algorand/testnet-telem:latest
     ```
 1. Create a Docker container
     * prepare configuration file
     ```bash
-    docker run -it -v <root-path>:/root/node/tmp algorand/testnet
+    docker run -it -v <root-path>:/root/node/tmp algorand/testnet-telem:latest
     node > cp -rf data tmp
     node > exit
     ```
