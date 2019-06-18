@@ -20,7 +20,7 @@ Base on the doc from official https://developer.algorand.org/docs/introduction-i
     node > cp -rf data tmp
     node > exit
     ```
-    * copy configuration file `cp <root-path>/data/config.json.example <root-path>/data/config.json` from example and edit `vi data/config.json`, 
+    * copy configuration file `cp <root-path>/data/config.json.example <root-path>/data/config.json` from example and edit `vi <root-path>/data/config.json`, 
         ```bash
         "DNSBootstrapID": "testnet.algorand.network",
         ...
