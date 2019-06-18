@@ -14,22 +14,29 @@ Base on the doc from official https://developer.algorand.org/docs/introduction-i
     docker build -f Dockerfile-testnet . -t algorand/testnet-telem:latest
     ```
 1. Create a Docker container
+    * prepare configuration file
     ```bash
-    docker run -p 8080:8080 algorand/testnet
+    docker run -it -v <root-path>:/root/node/tmp algorand/testnet
+    node > cp -rf data tmp
+    node > exit
     ```
-1. Sync Node with Network
-    * copy configuration file `cp data/config.json.example data/config.json` from example and edit `vi data/config.json` (you might need install vim), 
+    * copy configuration file `cp <root-path>/data/config.json.example <root-path>/data/config.json` from example and edit `vi data/config.json`, 
         ```bash
         "DNSBootstrapID": "testnet.algorand.network",
         ...
 
         "EndpointAddress": "127.0.0.1:8080",
         ```
+    * start a container
+    ```bash
+    docker run -it -d -v <root-path>/data:/root/node/data --name algorand algorand/testnet
+    ```
+1. Sync Node with Network
     * run goal
         ```bash
-        ./goal node start -d data
+        docker exec -it algorand /root/node/goal node start -d /root/node/data
         ```
     * print the rpc token
         ```bash
-        cat data/algod.token
+        docker exec -it algorand cat /root/node/data/algod.token
         ```
