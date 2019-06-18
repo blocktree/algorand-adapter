@@ -25,7 +25,7 @@ Base on the doc from official https://developer.algorand.org/docs/introduction-i
         "DNSBootstrapID": "testnet.algorand.network",
         ...
 
-        "EndpointAddress": "127.0.0.1:8080",
+        "EndpointAddress": "0.0.0.0:8080",
         ```
     * start a container
     ```bash
