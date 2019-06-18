@@ -15,7 +15,7 @@ Base on the doc from official https://developer.algorand.org/docs/introduction-i
     ```
 1. Create a Docker container
     ```bash
-    docker run -it -v <data-path>:/root/node/data -p 8080:8080 algorand/testnet
+    docker run -p 8080:8080 algorand/testnet
     ```
 1. Sync Node with Network
     * copy configuration file `cp data/config.json.example data/config.json` from example and edit `vi data/config.json` (you might need install vim), 
