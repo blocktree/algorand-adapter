@@ -36,16 +36,14 @@ type WalletConfig struct {
 	dbPath string
 	//钱包服务API
 	ServerAPI string
+	//algod service token
+	ServerToken string
 	//默认配置内容
 	DefaultConfig string
 	//曲线类型
 	CurveType uint32
 	//链ID
 	NetworkID string
-	//固定手续费
-	FixFees string
-	//激活账户最低余额
-	ActiveBalance string
 }
 
 func NewConfig(symbol string) *WalletConfig {
@@ -66,12 +64,10 @@ func NewConfig(symbol string) *WalletConfig {
 	c.BlockchainFile = "blockchain.db"
 	//本地数据库文件路径
 	c.dbPath = filepath.Join("data", strings.ToLower(c.Symbol), "db")
-	//钱包服务API
+	//钱包服务algod API
 	c.ServerAPI = ""
-	//固定手续费
-	c.FixFees = "0"
-	//激活账户最低余额
-	c.ActiveBalance = "0"
+	//algod token
+	c.ServerToken = ""
 
 	//创建目录
 	file.MkdirAll(c.dbPath)

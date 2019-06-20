@@ -8,8 +8,9 @@ openwtester包下的测试用例已经集成了openwallet钱包体系，创建co
 
 ```ini
 
-# RPC api url
-serverAPI = "http://127.0.0.1:8080"
+# algod service
+ServerAPI = "http://127.0.0.1:8080"
+ServerToken = ""
 
 ```
 

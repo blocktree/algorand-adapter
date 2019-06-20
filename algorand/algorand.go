@@ -1,6 +1,7 @@
 package algorand
 
 import (
+	"github.com/algorand/go-algorand-sdk/client/algod"
 	"github.com/astaxie/beego/config"
 	"github.com/blocktree/openwallet/log"
 	"github.com/blocktree/openwallet/openwallet"
@@ -50,11 +51,11 @@ func (wm *WalletManager) GetBlockScanner() openwallet.BlockScanner {
 //LoadAssetsConfig 加载外部配置
 func (wm *WalletManager) LoadAssetsConfig(c config.Configer) error {
 
-	wm.Config.ServerAPI = c.String("serverAPI")
-	// wm.client = NewClient(wm.Config.ServerAPI, false)
-	wm.Config.FixFees = c.String("fixFees")
-	wm.Config.ActiveBalance = c.String("activeBalance")
-	wm.Config.NetworkID = c.String("networkID")
+	wm.Config.ServerAPI = c.String("ServerAPI")
+	wm.Config.ServerToken = c.String("ServerToken")
+	client, _ := algod.MakeClient(wm.Config.ServerAPI, wm.Config.ServerToken)
+	wm.client = &client
+	// wm.Config.NetworkID = c.String("networkID")
 	return nil
 }
 
