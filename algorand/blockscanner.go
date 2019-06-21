@@ -1,6 +1,7 @@
 package algorand
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/blocktree/openwallet/common"
@@ -305,8 +306,7 @@ func (bs *AlgoBlockScanner) ScanBlockTask() {
 			}
 
 		} else {
-			//TODO
-			// err = bs.BatchExtractTransaction(block.Height, block.Hash, block.tx)
+			err = bs.BatchExtractTransaction(block.Height, block.Hash, block.Time, block.Transactions)
 			if err != nil {
 				bs.wm.Log.Std.Info("block scanner can not extractRechargeRecords; unexpected error: %v", err)
 			}
@@ -364,8 +364,8 @@ func (bs *AlgoBlockScanner) scanBlock(height uint64) (*Block, error) {
 	}
 
 	bs.wm.Log.Std.Info("block scanner scanning height: %d ...", block.Height)
-	//TODO
-	// err = bs.BatchExtractTransaction(block.Height, block.Hash, block.tx)
+
+	err = bs.BatchExtractTransaction(block.Height, block.Hash, block.Time, block.Transactions)
 	if err != nil {
 		bs.wm.Log.Std.Info("block scanner can not extractRechargeRecords; unexpected error: %v", err)
 	}
@@ -410,18 +410,19 @@ func (bs *AlgoBlockScanner) RescanFailedRecord() {
 
 		bs.wm.Log.Std.Info("block scanner rescanning height: %d ...", height)
 
+		var blockTime int64
 		if len(txs) == 0 {
 
-			_, err := bs.GetBlockByHeight(height)
+			block, err := bs.GetBlockByHeight(height)
 			if err != nil {
 				bs.wm.Log.Std.Info("block scanner can not get new block data; unexpected error: %v", err)
 				continue
 			}
-			//TODO
-			// txs = block.tx
+			txs = block.Transactions
+			blockTime = block.Time
 		}
 
-		err = bs.BatchExtractTransaction(height, hash, txs)
+		err = bs.BatchExtractTransaction(height, hash, blockTime, txs)
 		if err != nil {
 			bs.wm.Log.Std.Info("block scanner can not extractRechargeRecords; unexpected error: %v", err)
 			continue
@@ -443,8 +444,7 @@ func (bs *AlgoBlockScanner) newBlockNotify(block *Block, isFork bool) {
 }
 
 //BatchExtractTransaction 批量提取交易单
-//bitcoin 1M的区块链可以容纳3000笔交易，批量多线程处理，速度更快
-func (bs *AlgoBlockScanner) BatchExtractTransaction(blockHeight uint64, blockHash string, txs []string) error {
+func (bs *AlgoBlockScanner) BatchExtractTransaction(blockHeight uint64, blockHash string, blockTime int64, txs []string) error {
 
 	var (
 		quit       = make(chan struct{})
@@ -496,18 +496,23 @@ func (bs *AlgoBlockScanner) BatchExtractTransaction(blockHeight uint64, blockHas
 	}
 
 	//提取工作
-	extractWork := func(eblockHeight uint64, eBlockHash string, mTxs []string, eProducer chan ExtractResult) {
-		for _, txid := range mTxs {
+	extractWork := func(eblockHeight uint64, eBlockHash string, eBlockTime int64, mTxs []string, eProducer chan ExtractResult) {
+		for _, tx := range mTxs {
 			bs.extractingCH <- struct{}{}
 			//shouldDone++
-			go func(mBlockHeight uint64, mTxid string, end chan struct{}, mProducer chan<- ExtractResult) {
+			go func(mBlockHeight uint64, mTx string, end chan struct{}, mProducer chan<- ExtractResult) {
+
+				tx := Transaction{}
+				_ = json.Unmarshal([]byte(mTx), tx)
+				tx.BlockHash = eBlockHash
+				tx.BlockTime = eBlockTime
 
 				//导出提出的交易
-				mProducer <- bs.ExtractTransaction(mBlockHeight, eBlockHash, mTxid, bs.ScanTargetFunc)
+				mProducer <- bs.ExtractTransaction(mBlockHeight, eBlockHash, &tx, bs.ScanTargetFunc)
 				//释放
 				<-end
 
-			}(eblockHeight, txid, bs.extractingCH, eProducer)
+			}(eblockHeight, tx, bs.extractingCH, eProducer)
 		}
 	}
 
@@ -517,7 +522,7 @@ func (bs *AlgoBlockScanner) BatchExtractTransaction(blockHeight uint64, blockHas
 	go saveWork(blockHeight, worker)
 
 	//独立线程运行生产
-	go extractWork(blockHeight, blockHash, txs, producer)
+	go extractWork(blockHeight, blockHash, blockTime, txs, producer)
 
 	//以下使用生产消费模式
 	bs.extractRuntime(producer, worker, quit)
@@ -568,63 +573,50 @@ func (bs *AlgoBlockScanner) extractRuntime(producer chan ExtractResult, worker c
 }
 
 //提取交易单
-func (bs *AlgoBlockScanner) ExtractTransaction(blockHeight uint64, blockHash string, txid string, scanTargetFunc openwallet.BlockScanTargetFunc) ExtractResult {
+func (bs *AlgoBlockScanner) ExtractTransaction(blockHeight uint64, blockHash string, transaction *Transaction, scanTargetFunc openwallet.BlockScanTargetFunc) ExtractResult {
 	var (
 		success = true
 		result  = ExtractResult{
 			BlockHeight: blockHeight,
-			TxID:        txid,
+			TxID:        transaction.TxID,
 			extractData: make(map[string][]*openwallet.TxExtractData),
 		}
 	)
 
-	trx, err := bs.GetTransaction(txid)
-	if err != nil {
-		bs.wm.Log.Std.Info("block scanner can not extract transaction data; unexpected error: %v", err)
-		result.Success = false
-		return result
-	}
-	///TODO
-	trx.BlockHeight = blockHeight
-
 	//提出交易单明细
-	for _, operation := range trx.Operations {
 
-		if operation.Type == "payment" || operation.Type == "create-account" {
+	if transaction.Type == "pay" {
 
-			operation.BlockHeight = trx.BlockHeight
+		from := transaction.From
+		to := transaction.Payment.To
 
-			from := trx.From
-			to := operation.Target
+		//bs.wm.Log.Std.Info("block scanner scanning tx: %+v", txid)
+		//订阅地址为交易单中的发送者
+		accountId, ok1 := scanTargetFunc(openwallet.ScanTarget{
+			Address:          from,
+			BalanceModelType: openwallet.BalanceModelTypeAddress,
+		})
+		//订阅地址为交易单中的接收者
+		accountId2, ok2 := scanTargetFunc(openwallet.ScanTarget{
+			Address:          to,
+			BalanceModelType: openwallet.BalanceModelTypeAddress,
+		})
 
-			//bs.wm.Log.Std.Info("block scanner scanning tx: %+v", txid)
-			//订阅地址为交易单中的发送者
-			accountId, ok1 := scanTargetFunc(openwallet.ScanTarget{
-				Address:          from,
-				BalanceModelType: openwallet.BalanceModelTypeAddress,
-			})
-			//订阅地址为交易单中的接收者
-			accountId2, ok2 := scanTargetFunc(openwallet.ScanTarget{
-				Address:          to,
-				BalanceModelType: openwallet.BalanceModelTypeAddress,
-			})
-
-			//相同账户
-			if accountId == accountId2 && len(accountId) > 0 && len(accountId2) > 0 {
-				bs.InitExtractResult(operation, accountId, &result, 0)
-			} else {
-				if ok1 {
-					bs.InitExtractResult(operation, accountId, &result, 1)
-				}
-
-				if ok2 {
-					bs.InitExtractResult(operation, accountId2, &result, 2)
-				}
+		//相同账户
+		if accountId == accountId2 && len(accountId) > 0 && len(accountId2) > 0 {
+			bs.InitExtractResult(transaction, accountId, &result, 0)
+		} else {
+			if ok1 {
+				bs.InitExtractResult(transaction, accountId, &result, 1)
 			}
 
-			success = true
-
+			if ok2 {
+				bs.InitExtractResult(transaction, accountId2, &result, 2)
+			}
 		}
+
+		success = true
+
 	}
 
 	result.Success = success
@@ -633,7 +625,7 @@ func (bs *AlgoBlockScanner) ExtractTransaction(blockHeight uint64, blockHash str
 }
 
 //InitTronExtractResult operate = 0: 输入输出提取，1: 输入提取，2：输出提取
-func (bs *AlgoBlockScanner) InitExtractResult(tx *Operation, sourceKey string, result *ExtractResult, operate int64) {
+func (bs *AlgoBlockScanner) InitExtractResult(transaction *Transaction, sourceKey string, result *ExtractResult, operate int64) {
 
 	txExtractDataArray := result.extractData[sourceKey]
 	if txExtractDataArray == nil {
@@ -650,19 +642,19 @@ func (bs *AlgoBlockScanner) InitExtractResult(tx *Operation, sourceKey string, r
 		Symbol:     bs.wm.Symbol(),
 		IsContract: false,
 	}
-	amount = common.BigIntToDecimals(tx.Amount, bs.wm.Decimal())
+	amount = common.IntToDecimals(int64(transaction.Payment.Amount), bs.wm.Decimal())
 
 	transx := &openwallet.Transaction{
 		Fees:        "0",
 		Coin:        coin,
-		BlockHash:   tx.BlockHash,
-		BlockHeight: tx.BlockHeight,
-		TxID:        tx.TxID,
+		BlockHash:   transaction.BlockHash,
+		BlockHeight: transaction.BlockHeight,
+		TxID:        transaction.TxID,
 		Decimal:     bs.wm.Decimal(),
 		Amount:      amount.String(),
-		ConfirmTime: tx.Time,
-		From:        []string{tx.Source + ":" + amount.String()},
-		To:          []string{tx.Target + ":" + amount.String()},
+		ConfirmTime: int64(transaction.BlockTime),
+		From:        []string{transaction.From + ":" + amount.String()},
+		To:          []string{transaction.Payment.To + ":" + amount.String()},
 		Status:      status,
 		Reason:      reason,
 	}
@@ -672,12 +664,12 @@ func (bs *AlgoBlockScanner) InitExtractResult(tx *Operation, sourceKey string, r
 
 	txExtractData.Transaction = transx
 	if operate == 0 {
-		bs.extractTxInput(tx, txExtractData)
-		bs.extractTxOutput(tx, txExtractData)
+		bs.extractTxInput(transaction, txExtractData)
+		bs.extractTxOutput(transaction, txExtractData)
 	} else if operate == 1 {
-		bs.extractTxInput(tx, txExtractData)
+		bs.extractTxInput(transaction, txExtractData)
 	} else if operate == 2 {
-		bs.extractTxOutput(tx, txExtractData)
+		bs.extractTxOutput(transaction, txExtractData)
 	}
 
 	txExtractDataArray = append(txExtractDataArray, txExtractData)
@@ -685,30 +677,30 @@ func (bs *AlgoBlockScanner) InitExtractResult(tx *Operation, sourceKey string, r
 }
 
 //extractTxInput 提取交易单输入部分,无需手续费，所以只包含1个TxInput
-func (bs *AlgoBlockScanner) extractTxInput(tx *Operation, txExtractData *openwallet.TxExtractData) {
+func (bs *AlgoBlockScanner) extractTxInput(transaction *Transaction, txExtractData *openwallet.TxExtractData) {
 
 	amount := decimal.Zero
 	coin := openwallet.Coin{
 		Symbol:     bs.wm.Symbol(),
 		IsContract: false,
 	}
-	amount = common.BigIntToDecimals(tx.Amount, bs.wm.Decimal())
+	amount = common.IntToDecimals(int64(transaction.Payment.Amount), bs.wm.Decimal())
 
 	//主网from交易转账信息，第一个TxInput
 	txInput := &openwallet.TxInput{}
-	txInput.Recharge.Sid = openwallet.GenTxInputSID(tx.TxID, bs.wm.Symbol(), coin.ContractID, uint64(0))
-	txInput.Recharge.TxID = tx.TxID
-	txInput.Recharge.Address = tx.Source
+	txInput.Recharge.Sid = openwallet.GenTxInputSID(transaction.TxID, bs.wm.Symbol(), coin.ContractID, uint64(0))
+	txInput.Recharge.TxID = transaction.TxID
+	txInput.Recharge.Address = transaction.From
 	txInput.Recharge.Coin = coin
 	txInput.Recharge.Amount = amount.String()
-	txInput.Recharge.BlockHash = tx.BlockHash
-	txInput.Recharge.BlockHeight = tx.BlockHeight
+	txInput.Recharge.BlockHash = transaction.BlockHash
+	txInput.Recharge.BlockHeight = transaction.BlockHeight
 	txInput.Recharge.Index = 0 //账户模型填0
-	txInput.Recharge.CreateAt = tx.Time
+	txInput.Recharge.CreateAt = int64(transaction.BlockTime)
 	txExtractData.TxInputs = append(txExtractData.TxInputs, txInput)
 
 	//手续费也作为一个输出s
-	fees := common.BigIntToDecimals(tx.Fee, bs.wm.Decimal())
+	fees := common.IntToDecimals(int64(transaction.Fee), bs.wm.Decimal())
 	tmp := *txInput
 	feeCharge := &tmp
 	feeCharge.Amount = fees.String()
@@ -716,26 +708,26 @@ func (bs *AlgoBlockScanner) extractTxInput(tx *Operation, txExtractData *openwal
 }
 
 //extractTxOutput 提取交易单输入部分,只有一个TxOutPut
-func (bs *AlgoBlockScanner) extractTxOutput(tx *Operation, txExtractData *openwallet.TxExtractData) {
+func (bs *AlgoBlockScanner) extractTxOutput(transaction *Transaction, txExtractData *openwallet.TxExtractData) {
 
 	amount := decimal.Zero
 	coin := openwallet.Coin{
 		Symbol:     bs.wm.Symbol(),
 		IsContract: false,
 	}
-	amount = common.BigIntToDecimals(tx.Amount, bs.wm.Decimal())
+	amount = common.IntToDecimals(int64(transaction.Payment.Amount), bs.wm.Decimal())
 
 	//主网to交易转账信息,只有一个TxOutPut
 	txOutput := &openwallet.TxOutPut{}
-	txOutput.Recharge.Sid = openwallet.GenTxOutPutSID(tx.TxID, bs.wm.Symbol(), coin.ContractID, uint64(0))
-	txOutput.Recharge.TxID = tx.TxID
-	txOutput.Recharge.Address = tx.Target
+	txOutput.Recharge.Sid = openwallet.GenTxOutPutSID(transaction.TxID, bs.wm.Symbol(), coin.ContractID, uint64(0))
+	txOutput.Recharge.TxID = transaction.TxID
+	txOutput.Recharge.Address = transaction.Payment.To
 	txOutput.Recharge.Coin = coin
 	txOutput.Recharge.Amount = amount.String()
-	txOutput.Recharge.BlockHash = tx.BlockHash
-	txOutput.Recharge.BlockHeight = tx.BlockHeight
+	txOutput.Recharge.BlockHash = transaction.BlockHash
+	txOutput.Recharge.BlockHeight = transaction.BlockHeight
 	txOutput.Recharge.Index = 0 //账户模型填0
-	txOutput.Recharge.CreateAt = tx.Time
+	txOutput.Recharge.CreateAt = int64(transaction.BlockTime)
 	txExtractData.TxOutputs = append(txExtractData.TxOutputs, txOutput)
 }
 
@@ -763,6 +755,13 @@ func (bs *AlgoBlockScanner) newExtractDataNotify(height uint64, extractData map[
 
 //ExtractTransactionData
 func (bs *AlgoBlockScanner) ExtractTransactionData(txid string, scanAddressFunc openwallet.BlockScanTargetFunc) (map[string][]*openwallet.TxExtractData, error) {
-	result := bs.ExtractTransaction(0, "", txid, scanAddressFunc)
+
+	trx, err := bs.GetTransaction(txid)
+	if err != nil {
+		bs.wm.Log.Std.Info("block scanner can not extract transaction data; unexpected error: %v", err)
+		return nil, err
+	}
+
+	result := bs.ExtractTransaction(0, "", trx, scanAddressFunc)
 	return result.extractData, nil
 }
