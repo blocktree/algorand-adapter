@@ -55,7 +55,6 @@ func (wm *WalletManager) LoadAssetsConfig(c config.Configer) error {
 	wm.Config.ServerToken = c.String("ServerToken")
 	client, _ := algod.MakeClient(wm.Config.ServerAPI, wm.Config.ServerToken)
 	wm.client = &client
-	// wm.Config.NetworkID = c.String("networkID")
 	return nil
 }
 

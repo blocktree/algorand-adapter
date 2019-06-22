@@ -16,12 +16,13 @@
 package openwtester
 
 import (
+	"path/filepath"
+	"testing"
+
 	"github.com/astaxie/beego/config"
 	"github.com/blocktree/openwallet/log"
 	"github.com/blocktree/openwallet/openw"
 	"github.com/blocktree/openwallet/openwallet"
-	"path/filepath"
-	"testing"
 )
 
 ////////////////////////// 测试单个扫描器 //////////////////////////
@@ -66,8 +67,9 @@ func TestSubscribeAddress(t *testing.T) {
 		endRunning = make(chan bool, 1)
 		symbol     = "ALGO"
 		addrs      = map[string]string{
-			"GAECXQFHEMVMYJ7UUHL6NXJVZAUGYRIGW6STKUNT3QUIQRPN2ULJXTQ7": "sender",
-			"GAKYJRX644NQ667AHLE7SUZ2GS2SIWY2IPRPLZWSENWD4TDC22CTBSCN": "receiver",
+			"GGUMZYT7GHGTOUOMBXVY3AY754UKOKABBD4732COI7IVXMOCR4P4X23YYA": "sender",
+			"YDRTADVLLGLU76ARI4NU5V4XTXPHDJII7A5MY3UL6II77LGE5SPQUKJWI4": "sender",
+			"RUOFPIHECYML6DRNV4I6FLODNMU77AXU2MOWHK55WGMTG7H2AW4D2IHCJU": "receiver",
 		}
 	)
 
