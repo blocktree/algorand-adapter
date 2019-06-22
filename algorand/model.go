@@ -3,12 +3,46 @@ package algorand
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"strconv"
 
 	"github.com/algorand/go-algorand-sdk/client/algod/models"
 	"github.com/blocktree/openwallet/common"
 	"github.com/blocktree/openwallet/crypto"
 	"github.com/blocktree/openwallet/openwallet"
 )
+
+type AddrBalance struct {
+	Address      string
+	Balance      *big.Int
+	TokenBalance *big.Int
+}
+
+func NewAddrBalance(b *openwallet.Balance) *AddrBalance {
+	obj := AddrBalance{}
+	obj.Address = b.Address
+
+	balance, err := strconv.ParseInt(b.ConfirmBalance, 10, 64)
+	if err != nil {
+		balance = 0
+	}
+	obj.Balance = big.NewInt(balance)
+
+	return &obj
+}
+
+type txFeeInfo struct {
+	GasUsed  *big.Int
+	GasPrice *big.Int
+	Fee      *big.Int
+}
+
+func (f *txFeeInfo) CalcFee() error {
+	fee := new(big.Int)
+	fee.Mul(f.GasUsed, f.GasPrice)
+	f.Fee = fee
+	return nil
+}
 
 type Block struct {
 	Hash             string

@@ -23,8 +23,7 @@ func NewWalletManager() *WalletManager {
 	wm.Config = NewConfig(Symbol)
 	wm.Blockscanner = NewAlgoBlockScanner(&wm)
 	wm.Decoder = NewAddressDecoder(&wm)
-	// wm.TxDecoder = NewTransactionDecoder(&wm)
+	wm.TxDecoder = NewTransactionDecoder(&wm)
 	wm.Log = log.NewOWLogger(wm.Symbol())
-	// wm.ContractDecoder = NewContractDecoder(&wm)
 	return &wm
 }
