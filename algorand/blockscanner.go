@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/algorand/go-algorand-sdk/types"
 	"github.com/blocktree/openwallet/common"
 	"github.com/blocktree/openwallet/openwallet"
 	"github.com/shopspring/decimal"
@@ -585,7 +586,7 @@ func (bs *AlgoBlockScanner) ExtractTransaction(blockHeight uint64, blockHash str
 
 	//提出交易单明细
 
-	if transaction.Type == "pay" {
+	if transaction.Type == string(types.PaymentTx) {
 
 		from := transaction.From
 		to := transaction.Payment.To
