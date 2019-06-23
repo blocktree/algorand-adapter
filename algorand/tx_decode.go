@@ -76,11 +76,10 @@ func (decoder *TransactionDecoder) CreateRawTransaction(wrapper openwallet.Walle
 			continue
 		}
 
-		b, err := strconv.ParseInt(resp[0].ConfirmBalance, 10, 64)
+		balanceAmount := common.StringNumToBigIntWithExp(resp[0].ConfirmBalance, decimals)
 		if err != nil {
 			continue
 		}
-		balanceAmount := big.NewInt(b)
 
 		//总消耗数量 = 转账数量 + 手续费
 		totalAmount := new(big.Int)
