@@ -369,7 +369,10 @@ func (decoder *TransactionDecoder) createRawTransaction(
 		keySignList      = make([]*openwallet.KeySignature, 0)
 		amountStr        string
 		destination      string
+		validRounds      uint64
 	)
+
+	validRounds = decoder.wm.Config.ValidRounds
 
 	decimals := int32(0)
 	if rawTx.Coin.IsContract {
@@ -398,7 +401,7 @@ func (decoder *TransactionDecoder) createRawTransaction(
 
 	amount := common.StringNumToBigIntWithExp(amountStr, decimals)
 	//存在直接转账
-	txn, err := transaction.MakePaymentTxn(addrBalance.Address, destination, suggestedParams.Fee, amount.Uint64(), suggestedParams.LastRound, suggestedParams.LastRound+1000, []byte(""), "", suggestedParams.GenesisID, suggestedParams.GenesisHash)
+	txn, err := transaction.MakePaymentTxn(addrBalance.Address, destination, suggestedParams.Fee, amount.Uint64(), suggestedParams.LastRound, suggestedParams.LastRound+validRounds, []byte(""), "", suggestedParams.GenesisID, suggestedParams.GenesisHash)
 	// todo add nonce
 
 	toBeSigned := rawTransactionBytesToSign(txn)

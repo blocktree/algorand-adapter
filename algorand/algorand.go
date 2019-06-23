@@ -1,6 +1,8 @@
 package algorand
 
 import (
+	"strconv"
+
 	"github.com/algorand/go-algorand-sdk/client/algod"
 	"github.com/astaxie/beego/config"
 	"github.com/blocktree/openwallet/log"
@@ -54,6 +56,8 @@ func (wm *WalletManager) LoadAssetsConfig(c config.Configer) error {
 	wm.Config.ServerAPI = c.String("ServerAPI")
 	wm.Config.ServerToken = c.String("ServerToken")
 	wm.Config.FixFees = c.String("FixFees")
+	validRounds, _ := strconv.ParseUint(c.String("ValidRounds"), 10, 64)
+	wm.Config.ValidRounds = validRounds
 
 	client, _ := algod.MakeClient(wm.Config.ServerAPI, wm.Config.ServerToken)
 	wm.client = &client

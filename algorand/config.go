@@ -46,6 +46,8 @@ type WalletConfig struct {
 	NetworkID string
 	//固定手续费
 	FixFees string
+	// ValidRounds limits valid rounds delay count
+	ValidRounds uint64
 }
 
 func NewConfig(symbol string) *WalletConfig {
@@ -64,7 +66,7 @@ func NewConfig(symbol string) *WalletConfig {
 	c.configFileName = c.Symbol + ".ini"
 	//区块链数据文件
 	c.BlockchainFile = "blockchain.db"
-	//本地数据库文件路径 
+	//本地数据库文件路径
 	c.dbPath = filepath.Join("data", strings.ToLower(c.Symbol), "db")
 	//钱包服务algod API
 	c.ServerAPI = ""
@@ -72,6 +74,8 @@ func NewConfig(symbol string) *WalletConfig {
 	c.ServerToken = ""
 	//固定手续费
 	c.FixFees = "0"
+	//ValidRounds counts
+	c.ValidRounds = 1000
 	//创建目录
 	file.MkdirAll(c.dbPath)
 
