@@ -46,8 +46,7 @@ func (wm *WalletManager) GetTransactionDecoder() openwallet.TransactionDecoder {
 
 //GetBlockScanner 获取区块链
 func (wm *WalletManager) GetBlockScanner() openwallet.BlockScanner {
-
-	return nil
+	return wm.Blockscanner
 }
 
 //LoadAssetsConfig 加载外部配置
