@@ -11,6 +11,8 @@ openwtester包下的测试用例已经集成了openwallet钱包体系，创建co
 # algod service
 ServerAPI = "http://127.0.0.1:8080"
 ServerToken = ""
+# FixFees use to estimate address have enough amount for tx fee
+FixFees = 0.001
 
 ```
 
