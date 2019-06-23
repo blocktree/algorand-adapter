@@ -40,11 +40,10 @@ func NewTransactionDecoder(wm *WalletManager) *TransactionDecoder {
 func (decoder *TransactionDecoder) CreateRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
 
 	var (
-		decimals  = decoder.wm.Decimal()
-		accountID = rawTx.Account.AccountID
-		// fixFees         = big.NewInt(0)
+		decimals        = decoder.wm.Decimal()
+		accountID       = rawTx.Account.AccountID
+		estimateFees    = big.NewInt(0)
 		findAddrBalance *AddrBalance
-		feeInfo         *txFeeInfo
 	)
 
 	//获取wallet
@@ -63,8 +62,13 @@ func (decoder *TransactionDecoder) CreateRawTransaction(wrapper openwallet.Walle
 		break
 	}
 
-	//todo cal fee
 	amount := common.StringNumToBigIntWithExp(amountStr, decimals)
+
+	if len(rawTx.FeeRate) > 0 {
+		estimateFees = common.StringNumToBigIntWithExp(rawTx.FeeRate, decimals)
+	} else {
+		estimateFees = common.StringNumToBigIntWithExp(decoder.wm.Config.FixFees, decimals)
+	}
 
 	for _, addr := range addresses {
 		resp, _ := decoder.wm.Blockscanner.GetBalanceByAddress(addr.Address)
@@ -80,7 +84,7 @@ func (decoder *TransactionDecoder) CreateRawTransaction(wrapper openwallet.Walle
 
 		//总消耗数量 = 转账数量 + 手续费
 		totalAmount := new(big.Int)
-		totalAmount.Add(amount, feeInfo.Fee)
+		totalAmount.Add(amount, estimateFees)
 
 		//余额不足查找下一个地址
 		if balanceAmount.Cmp(totalAmount) < 0 {
@@ -262,12 +266,17 @@ func (decoder *TransactionDecoder) CreateSummaryRawTransaction(wrapper openwalle
 		accountID       = sumRawTx.Account.AccountID
 		minTransfer     = common.StringNumToBigIntWithExp(sumRawTx.MinTransfer, decimals)
 		retainedBalance = common.StringNumToBigIntWithExp(sumRawTx.RetainedBalance, decimals)
-		fixFees         = big.NewInt(0)
-		feeInfo         *txFeeInfo
+		estimateFees    = big.NewInt(0)
 	)
 
 	if minTransfer.Cmp(retainedBalance) < 0 {
 		return nil, fmt.Errorf("mini transfer amount must be greater than address retained balance")
+	}
+
+	if len(sumRawTx.FeeRate) > 0 {
+		estimateFees = common.StringNumToBigIntWithExp(sumRawTx.FeeRate, decimals)
+	} else {
+		estimateFees = common.StringNumToBigIntWithExp(decoder.wm.Config.FixFees, decimals)
 	}
 
 	//获取wallet
@@ -279,14 +288,6 @@ func (decoder *TransactionDecoder) CreateSummaryRawTransaction(wrapper openwalle
 
 	if len(addresses) == 0 {
 		return nil, fmt.Errorf("[%s] have not addresses", accountID)
-	}
-
-	//计算手续费
-	//计算手续费
-	feeInfo = &txFeeInfo{
-		Fee:      fixFees,
-		GasPrice: fixFees,
-		GasUsed:  big.NewInt(1),
 	}
 
 	for _, addr := range addresses {
@@ -308,13 +309,13 @@ func (decoder *TransactionDecoder) CreateSummaryRawTransaction(wrapper openwalle
 		sumAmount_BI.Sub(addrBalance_BI, retainedBalance)
 
 		//减去手续费
-		sumAmount_BI.Sub(sumAmount_BI, feeInfo.Fee)
+		sumAmount_BI.Sub(sumAmount_BI, estimateFees)
 		if sumAmount_BI.Cmp(big.NewInt(0)) <= 0 {
 			continue
 		}
 
 		sumAmount := common.BigIntToDecimals(sumAmount_BI, decimals)
-		feesAmount := common.BigIntToDecimals(feeInfo.Fee, decimals)
+		feesAmount := common.BigIntToDecimals(estimateFees, decimals)
 
 		decoder.wm.Log.Debugf("balance: %v", addrBalance.String())
 		decoder.wm.Log.Debugf("fees: %v", feesAmount)
