@@ -253,106 +253,106 @@ func (decoder *TransactionDecoder) GetRawTransactionFeeRate() (feeRate string, u
 	return strconv.FormatUint(suggestedFeeRate.Fee, 10), decoder.wm.Config.Symbol, err
 }
 
-// //CreateSummaryRawTransaction 创建汇总交易
-// func (decoder *TransactionDecoder) CreateSummaryRawTransaction(wrapper openwallet.WalletDAI, sumRawTx *openwallet.SummaryRawTransaction) ([]*openwallet.RawTransaction, error) {
+//CreateSummaryRawTransaction 创建汇总交易
+func (decoder *TransactionDecoder) CreateSummaryRawTransaction(wrapper openwallet.WalletDAI, sumRawTx *openwallet.SummaryRawTransaction) ([]*openwallet.RawTransaction, error) {
 
-// 	var (
-// 		decimals        = decoder.wm.Decimal()
-// 		rawTxArray      = make([]*openwallet.RawTransaction, 0)
-// 		accountID       = sumRawTx.Account.AccountID
-// 		minTransfer     = common.StringNumToBigIntWithExp(sumRawTx.MinTransfer, decimals)
-// 		retainedBalance = common.StringNumToBigIntWithExp(sumRawTx.RetainedBalance, decimals)
-// 		fixFees         = big.NewInt(0)
-// 		feeInfo         *txFeeInfo
-// 	)
+	var (
+		decimals        = decoder.wm.Decimal()
+		rawTxArray      = make([]*openwallet.RawTransaction, 0)
+		accountID       = sumRawTx.Account.AccountID
+		minTransfer     = common.StringNumToBigIntWithExp(sumRawTx.MinTransfer, decimals)
+		retainedBalance = common.StringNumToBigIntWithExp(sumRawTx.RetainedBalance, decimals)
+		fixFees         = big.NewInt(0)
+		feeInfo         *txFeeInfo
+	)
 
-// 	if minTransfer.Cmp(retainedBalance) < 0 {
-// 		return nil, fmt.Errorf("mini transfer amount must be greater than address retained balance")
-// 	}
+	if minTransfer.Cmp(retainedBalance) < 0 {
+		return nil, fmt.Errorf("mini transfer amount must be greater than address retained balance")
+	}
 
-// 	//获取wallet
-// 	addresses, err := wrapper.GetAddressList(sumRawTx.AddressStartIndex, sumRawTx.AddressLimit,
-// 		"AccountID", sumRawTx.Account.AccountID)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	//获取wallet
+	addresses, err := wrapper.GetAddressList(sumRawTx.AddressStartIndex, sumRawTx.AddressLimit,
+		"AccountID", sumRawTx.Account.AccountID)
+	if err != nil {
+		return nil, err
+	}
 
-// 	if len(addresses) == 0 {
-// 		return nil, fmt.Errorf("[%s] have not addresses", accountID)
-// 	}
+	if len(addresses) == 0 {
+		return nil, fmt.Errorf("[%s] have not addresses", accountID)
+	}
 
-// 	if len(sumRawTx.FeeRate) > 0 {
-// 		fixFees = common.StringNumToBigIntWithExp(sumRawTx.FeeRate, decimals)
-// 	} else {
-// 		fixFees = common.StringNumToBigIntWithExp(decoder.wm.Config.FixFees, decimals)
-// 	}
+	//计算手续费
+	//计算手续费
+	feeInfo = &txFeeInfo{
+		Fee:      fixFees,
+		GasPrice: fixFees,
+		GasUsed:  big.NewInt(1),
+	}
 
-// 	//计算手续费
-// 	//计算手续费
-// 	feeInfo = &txFeeInfo{
-// 		Fee:      fixFees,
-// 		GasPrice: fixFees,
-// 		GasUsed:  big.NewInt(1),
-// 	}
+	for _, addr := range addresses {
 
-// 	for _, addr := range addresses {
+		account, _ := decoder.wm.Blockscanner.GetBalanceByAddress(addr.Address)
+		if len(account) == 0 {
+			continue
+		}
 
-// 		account, exist, _ := decoder.wm.GetAccounts(addr.Address)
-// 		if !exist {
-// 			continue
-// 		}
+		//检查余额是否超过最低转账
+		addrBalance_BI := common.StringNumToBigIntWithExp(account[0].Balance, decoder.wm.Decimal())
+		addrBalance := common.StringNumToBigIntWithExp(account[0].Balance, decoder.wm.Decimal())
 
-// 		//检查余额是否超过最低转账
-// 		addrBalance_BI := account.Balance
-// 		addrBalance := common.BigIntToDecimals(account.Balance, decoder.wm.Decimal())
+		if addrBalance_BI.Cmp(minTransfer) < 0 || addrBalance_BI.Cmp(big.NewInt(0)) <= 0 {
+			continue
+		}
+		//计算汇总数量 = 余额 - 保留余额
+		sumAmount_BI := new(big.Int)
+		sumAmount_BI.Sub(addrBalance_BI, retainedBalance)
 
-// 		if addrBalance_BI.Cmp(minTransfer) < 0 || addrBalance_BI.Cmp(big.NewInt(0)) <= 0 {
-// 			continue
-// 		}
-// 		//计算汇总数量 = 余额 - 保留余额
-// 		sumAmount_BI := new(big.Int)
-// 		sumAmount_BI.Sub(addrBalance_BI, retainedBalance)
+		//减去手续费
+		sumAmount_BI.Sub(sumAmount_BI, feeInfo.Fee)
+		if sumAmount_BI.Cmp(big.NewInt(0)) <= 0 {
+			continue
+		}
 
-// 		//减去手续费
-// 		sumAmount_BI.Sub(sumAmount_BI, feeInfo.Fee)
-// 		if sumAmount_BI.Cmp(big.NewInt(0)) <= 0 {
-// 			continue
-// 		}
+		sumAmount := common.BigIntToDecimals(sumAmount_BI, decimals)
+		feesAmount := common.BigIntToDecimals(feeInfo.Fee, decimals)
 
-// 		sumAmount := common.BigIntToDecimals(sumAmount_BI, decimals)
-// 		feesAmount := common.BigIntToDecimals(feeInfo.Fee, decimals)
+		decoder.wm.Log.Debugf("balance: %v", addrBalance.String())
+		decoder.wm.Log.Debugf("fees: %v", feesAmount)
+		decoder.wm.Log.Debugf("sumAmount: %v", sumAmount)
 
-// 		decoder.wm.Log.Debugf("balance: %v", addrBalance.String())
-// 		decoder.wm.Log.Debugf("fees: %v", feesAmount)
-// 		decoder.wm.Log.Debugf("sumAmount: %v", sumAmount)
+		//创建一笔交易单
+		rawTx := &openwallet.RawTransaction{
+			Coin:    sumRawTx.Coin,
+			Account: sumRawTx.Account,
+			To: map[string]string{
+				sumRawTx.SummaryAddress: sumAmount.StringFixed(decoder.wm.Decimal()),
+			},
+			Required: 1,
+		}
 
-// 		//创建一笔交易单
-// 		rawTx := &openwallet.RawTransaction{
-// 			Coin:    sumRawTx.Coin,
-// 			Account: sumRawTx.Account,
-// 			To: map[string]string{
-// 				sumRawTx.SummaryAddress: sumAmount.StringFixed(decoder.wm.Decimal()),
-// 			},
-// 			Required: 1,
-// 		}
+		parmas, err := decoder.wm.client.SuggestedParams()
+		if err != nil {
+			return nil, fmt.Errorf("gets the suggested transaction parameters fail", err)
+		}
 
-// 		createErr := decoder.createRawTransaction(
-// 			wrapper,
-// 			rawTx,
-// 			account,
-// 			feeInfo,
-// 			"")
-// 		if createErr != nil {
-// 			return nil, createErr
-// 		}
+		findAddrBalance := NewAddrBalance(account[0])
 
-// 		//创建成功，添加到队列
-// 		rawTxArray = append(rawTxArray, rawTx)
+		createErr := decoder.createRawTransaction(
+			wrapper,
+			rawTx,
+			findAddrBalance,
+			parmas)
+		if createErr != nil {
+			return nil, createErr
+		}
 
-// 	}
+		//创建成功，添加到队列
+		rawTxArray = append(rawTxArray, rawTx)
 
-// 	return rawTxArray, nil
-// }
+	}
+
+	return rawTxArray, nil
+}
 
 //createRawTransaction
 func (decoder *TransactionDecoder) createRawTransaction(
@@ -447,36 +447,6 @@ func (decoder *TransactionDecoder) CreateSummaryRawTransactionWithError(wrapper 
 	}
 	return raTxWithErr, nil
 }
-
-// //GetNewNonce  确定txdecode nonce值
-// func (decoder *TransactionDecoder) GetNewNonce(wrapper openwallet.WalletDAI, addr *AddrBalance) uint64 {
-
-// 	var (
-// 		nonce        uint64
-// 		nonce_submit uint64
-// 	)
-// 	//获取db记录的nonce并确认nonce值
-// 	//nonce_cache, _ := wrapper.GetAddressExtParam(addr.Address, PESS_SEQUENCEID_KEY)
-// 	////判断nonce_db是否为空,为空则说明当前nonce是0
-// 	//if nonce_cache == nil {
-// 	//	nonce = addr.SequenceID
-// 	//} else {
-// 	//	nonce = common.NewString(nonce_cache).UInt64()
-// 	//}
-
-// 	nonce_chain := addr.SequenceID
-
-// 	//如果本地nonce_db > 链上nonce,采用本地nonce,否则采用链上nonce
-// 	if nonce > nonce_chain {
-// 		log.Debugf("use cache nonce")
-// 		nonce_submit = nonce
-// 	} else {
-// 		log.Debugf("use chain nonce")
-// 		nonce_submit = nonce_chain
-// 	}
-
-// 	return nonce_submit
-// }
 
 // rawTransactionBytesToSign returns the byte form of the tx that we actually sign
 // and compute txID from.
