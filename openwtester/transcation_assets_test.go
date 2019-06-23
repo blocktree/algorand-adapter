@@ -16,8 +16,9 @@
 package openwtester
 
 import (
-	"github.com/blocktree/openwallet/openw"
 	"testing"
+
+	"github.com/blocktree/openwallet/openw"
 
 	"github.com/blocktree/openwallet/log"
 	"github.com/blocktree/openwallet/openwallet"

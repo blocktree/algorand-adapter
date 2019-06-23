@@ -42,9 +42,9 @@ func TestWalletManager_GetTransactions(t *testing.T) {
 func TestWalletManager_GetTransactionByWxID(t *testing.T) {
 	tm := testInitWalletManager()
 	wxID := openwallet.GenTransactionWxID(&openwallet.Transaction{
-		TxID: "bfa6febb33c8ddde9f7f7b4d93043956cce7e0f4e95da259a78dc9068d178fee",
+		TxID: "CW3DY3D4F5IKHWR7BT2HCH5D2LWHYAVSHVJIRXWRSIVTQYAXDSGQ",
 		Coin: openwallet.Coin{
-			Symbol:     "LTC",
+			Symbol:     "ALGO",
 			IsContract: false,
 			ContractID: "",
 		},
@@ -61,9 +61,8 @@ func TestWalletManager_GetTransactionByWxID(t *testing.T) {
 
 func TestWalletManager_GetAssetsAccountBalance(t *testing.T) {
 	tm := testInitWalletManager()
-	walletID := "WAJ3TuKDe9Ax69iZU84aBWNETUMaLHPCys"
-	accountID := "3rA23y9MakBnyJif4w1JdkYPL469eNd7vvPm9QMCz959"
-	//accountID := "FSMnUMMGZ33LWhNNUGcdYmgrevQgQFUeWLdndjzarfuL"
+	walletID := "W2hCwchcXHYAPSBw4CUgYqG6qxRHjdoeU4"
+	accountID := "FQ5w33qE248vQd9AHsth8HtFUR4KYp22F6ReDSg2g8qM"
 	balance, err := tm.GetAssetsAccountBalance(testApp, walletID, accountID)
 	if err != nil {
 		log.Error("GetAssetsAccountBalance failed, unexpected error:", err)
@@ -103,7 +102,7 @@ func TestGetAddressBalance(t *testing.T) {
 	bs := assetsMgr.GetBlockScanner()
 
 	addrs := []string{
-		"ak_2Ju1M5wyNHBVRuiL3PFT4T6AaRkfK1qYk4GgkDBi2uNSXxL9tT",
+		"2AXW2BPYVC5NPWE5GX6JEB2JCWUAN5MRG67HQQ6YOUEGHZ4IAYC6T2PROU",
 	}
 
 	balances, err := bs.GetBalanceByAddress(addrs...)
