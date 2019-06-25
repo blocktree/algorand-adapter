@@ -162,14 +162,14 @@ func TestTransfer_ALGO(t *testing.T) {
 
 func TestSummary_ALGO(t *testing.T) {
 	tm := testInitWalletManager()
-	walletID := "WAJ3TuKDe9Ax69iZU84aBWNETUMaLHPCys"
-	accountID := "FSMnUMMGZ33LWhNNUGcdYmgrevQgQFUeWLdndjzarfuL"
-	summaryAddress := "GAKYJRX644NQ667AHLE7SUZ2GS2SIWY2IPRPLZWSENWD4TDC22CTBSCN"
+	walletID := "W2hCwchcXHYAPSBw4CUgYqG6qxRHjdoeU4"
+	accountID := "AvW26XZJQXFmowh3cUbs1CxPqVDdgTJHHv4Yu2pL8rde"
+	summaryAddress := "3MZU327AQ35IH3Y5K4ZIHXI5GR3D2OYIJ3MCMVTQ5PXBXLSSWVC5LVDDCA"
 
 	testGetAssetsAccountBalance(tm, walletID, accountID)
 
 	rawTxArray, err := testCreateSummaryTransactionStep(tm, walletID, accountID,
-		summaryAddress, "", "", "",
+		summaryAddress, "0.1", "0.1", "",
 		0, 100, nil)
 	if err != nil {
 		log.Errorf("CreateSummaryTransaction failed, unexpected error: %v", err)
