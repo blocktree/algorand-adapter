@@ -121,6 +121,10 @@ func (decoder *TransactionDecoder) CreateRawTransaction(wrapper openwallet.Walle
 //SignRawTransaction 签名交易单
 func (decoder *TransactionDecoder) SignRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
 
+	var (
+		txn types.Transaction
+	)
+
 	if rawTx.Signatures == nil || len(rawTx.Signatures) == 0 {
 		return fmt.Errorf("transaction signature is empty")
 	}
@@ -150,6 +154,12 @@ func (decoder *TransactionDecoder) SignRawTransaction(wrapper openwallet.WalletD
 			sig, err := txsigner.Default.SignTransactionHash(msg, keyBytes, keySignature.EccType)
 			if err != nil {
 				return fmt.Errorf("sign transaction hash failed, unexpected err: %v", err)
+			}
+
+			rawHex, _ := hex.DecodeString(rawTx.RawHex)
+			err = json.Unmarshal(rawHex, &txn)
+			if err != nil {
+				return fmt.Errorf("raw tx Unmarshal failed", err)
 			}
 
 			decoder.wm.Log.Debugf("message: %s", hex.EncodeToString(msg))
@@ -190,13 +200,18 @@ func (decoder *TransactionDecoder) VerifyRawTransaction(wrapper openwallet.Walle
 			signature, _ := hex.DecodeString(keySignature.Signature)
 			publicKey, _ := hex.DecodeString(keySignature.Address.PublicKey)
 
-			//验证签名
+			// 验证签名
 			ret := owcrypt.Verify(publicKey, nil, 0, messsage, uint16(len(messsage)), signature, keySignature.EccType)
 			if ret != owcrypt.SUCCESS {
 				return fmt.Errorf("transaction verify failed")
 			}
 
-			json.Unmarshal([]byte(rawTx.RawHex), txn)
+			rawHex, _ := hex.DecodeString(rawTx.RawHex)
+			err := json.Unmarshal(rawHex, &txn)
+			if err != nil {
+				return fmt.Errorf("raw tx Unmarshal failed", err)
+			}
+
 			copy(sig[:], signature[:])
 			// Construct the SignedTxn
 			stx := types.SignedTxn{
@@ -208,7 +223,7 @@ func (decoder *TransactionDecoder) VerifyRawTransaction(wrapper openwallet.Walle
 			stxBytes := msgpack.Encode(stx)
 
 			rawTx.IsCompleted = true
-			rawTx.RawHex = string(stxBytes)
+			rawTx.RawHex = hex.EncodeToString(stxBytes)
 			break
 
 		}
@@ -220,7 +235,11 @@ func (decoder *TransactionDecoder) VerifyRawTransaction(wrapper openwallet.Walle
 //SendRawTransaction 广播交易单
 func (decoder *TransactionDecoder) SubmitRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) (*openwallet.Transaction, error) {
 
-	resp, err := decoder.wm.client.SendRawTransaction([]byte(rawTx.RawHex))
+	rawHex, err := hex.DecodeString(rawTx.RawHex)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := decoder.wm.client.SendRawTransaction(rawHex)
 	if err != nil {
 		return nil, err
 	}
@@ -401,11 +420,10 @@ func (decoder *TransactionDecoder) createRawTransaction(
 	amount := common.StringNumToBigIntWithExp(amountStr, decimals)
 	//存在直接转账
 	txn, err := transaction.MakePaymentTxn(addrBalance.Address, destination, suggestedParams.Fee, amount.Uint64(), suggestedParams.LastRound, suggestedParams.LastRound+validRounds, []byte(""), "", suggestedParams.GenesisID, suggestedParams.GenesisHash)
-	// todo add nonce
 
 	toBeSigned := rawTransactionBytesToSign(txn)
 	rawHex, _ := serialize(txn)
-	rawTx.RawHex = string(rawHex)
+	rawTx.RawHex = hex.EncodeToString(rawHex)
 
 	if rawTx.Signatures == nil {
 		rawTx.Signatures = make(map[string][]*openwallet.KeySignature)

@@ -42,7 +42,7 @@ func testGetAssetsAccountTokenBalance(tm *openw.WalletManager, walletID, account
 	log.Info("token balance:", balance.Balance)
 }
 
-func testCreateTransactionStep(tm *openw.WalletManager, walletID, accountID, to, amount, feeRate string, contract *openwallet.SmartContract) (*openwallet.RawTransaction, error) {
+func testCreateTransactionStep(tm *openw.WalletManager, walletID, accountID, to, amount, feeRate string, memo string, contract *openwallet.SmartContract) (*openwallet.RawTransaction, error) {
 
 	//err := tm.RefreshAssetsAccountBalance(testApp, accountID)
 	//if err != nil {
@@ -50,7 +50,7 @@ func testCreateTransactionStep(tm *openw.WalletManager, walletID, accountID, to,
 	//	return nil, err
 	//}
 
-	rawTx, err := tm.CreateTransaction(testApp, walletID, accountID, amount, to, feeRate, "", contract)
+	rawTx, err := tm.CreateTransaction(testApp, walletID, accountID, amount, to, feeRate, memo, contract)
 
 	if err != nil {
 		log.Error("CreateTransaction failed, unexpected error:", err)
@@ -120,26 +120,19 @@ func testSubmitTransactionStep(tm *openw.WalletManager, rawTx *openwallet.RawTra
 
 func TestTransfer_ALGO(t *testing.T) {
 
-	//GAN3FXW7I5ZYRQAIALE3LTZ6K32CLFWB425H6DOSI3LL26ZQBDYZVSXF
-	//GBL3UQTX7AEKJEXPCCULMTPGXBM3L25XPURC3YYOH5GYDXKFIT3L3RK5
-	//GBYSQ2RMGCMW22FIGYVES7ZA6BCBM7ZYXCSRNXL6OPCYD7C4RTUOQZ4Y
-	//GCUH7EXP2H4KW7KL2Z3NGTNM3U6L23F35UOOKCAS7M2EYTU7SWBC2DAW
-	//GCYH6ONYB3SN7U3CSBYBACAABF25NHCX3I5NWYPFXR6ADPD36DKMMRQY
-
 	tm := testInitWalletManager()
-	walletID := "WAJ3TuKDe9Ax69iZU84aBWNETUMaLHPCys"
-	accountID := "3rA23y9MakBnyJif4w1JdkYPL469eNd7vvPm9QMCz959"
-	//to := "GBYSQ2RMGCMW22FIGYVES7ZA6BCBM7ZYXCSRNXL6OPCYD7C4RTUOQZ4Y"
-	to := "GBYSQ2RMGCMW22FIGYVES7ZA6BCBM7ZYXCSRNXL6OPCYD7C4RTUOQZ4Y"
+	walletID := "W2hCwchcXHYAPSBw4CUgYqG6qxRHjdoeU4"
+	accountID := "FQ5w33qE248vQd9AHsth8HtFUR4KYp22F6ReDSg2g8qM"
 
-	//accountID := "FSMnUMMGZ33LWhNNUGcdYmgrevQgQFUeWLdndjzarfuL"
-	//to := "ak_qcqXt6ySgRPvBkNwEpNMvaKWzrhPZsoBHLvgg68qg9vRht62y"
+	// to walletID W2hCwchcXHYAPSBw4CUgYqG6qxRHjdoeU4
+	// to accountID AvW26XZJQXFmowh3cUbs1CxPqVDdgTJHHv4Yu2pL8rde
+	to := "2IPTTRBWPXXMFGQDCTKTPBYBEDHNXYPLGAADUNQUY25HKZZWGR622NLMAE"
 
 	testGetAssetsAccountBalance(tm, walletID, accountID)
 
 	for i := 0; i < 1; i++ {
 
-		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "0.001", "", nil)
+		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "0.123456", "", "hello algorand", nil)
 		if err != nil {
 			return
 		}

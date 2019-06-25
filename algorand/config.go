@@ -10,9 +10,8 @@ import (
 
 const (
 	//币种
-	Symbol              = "ALGO"
-	CurveType           = owcrypt.ECC_CURVE_ED25519
-	ALGO_SEQUENCEID_KEY = "ALGO_SEQUENCEID_KEY"
+	Symbol    = "ALGO"
+	CurveType = owcrypt.ECC_CURVE_ED25519
 
 	//默认配置内容
 	defaultConfig = `
