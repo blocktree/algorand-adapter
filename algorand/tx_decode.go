@@ -432,7 +432,6 @@ func (decoder *TransactionDecoder) createRawTransaction(
 	signature := openwallet.KeySignature{
 		EccType: decoder.wm.Config.CurveType,
 		Address: addr,
-		Nonce:   "", // todo
 		Message: hex.EncodeToString(toBeSigned),
 	}
 	keySignList = append(keySignList, &signature)
