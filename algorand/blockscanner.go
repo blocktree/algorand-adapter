@@ -504,7 +504,8 @@ func (bs *AlgoBlockScanner) BatchExtractTransaction(blockHeight uint64, blockHas
 			go func(mBlockHeight uint64, mTx string, end chan struct{}, mProducer chan<- ExtractResult) {
 
 				tx := Transaction{}
-				_ = json.Unmarshal([]byte(mTx), tx)
+				_ = json.Unmarshal([]byte(mTx), &tx)
+				tx.BlockHeight = eblockHeight
 				tx.BlockHash = eBlockHash
 				tx.BlockTime = eBlockTime
 

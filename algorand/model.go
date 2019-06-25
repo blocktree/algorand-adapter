@@ -94,16 +94,16 @@ func (b *Block) BlockHeader(symbol string) *openwallet.BlockHeader {
 }
 
 type Transaction struct {
-	Type        string
+	Type        string `json:"type"`
 	BlockHash   string
 	BlockHeight uint64
 	BlockTime   int64
-	GenesisID   string
-	Fee         uint64
-	TxID        string
-	From        string
-	Note        []byte
-	Payment     *models.PaymentTransactionType
+	GenesisID   string                         `json:"genesisID"`
+	Fee         uint64                         `json:"fee"`
+	TxID        string                         `json:"tx"`
+	From        string                         `json:"from"`
+	Note        []byte                         `json:"note"`
+	Payment     *models.PaymentTransactionType `json:"payment,omitempty"`
 }
 
 func NewTransaction(tx models.Transaction) *Transaction {
