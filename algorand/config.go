@@ -47,6 +47,8 @@ type WalletConfig struct {
 	FixFees string
 	// ValidRounds limits valid rounds delay count
 	ValidRounds uint64
+	// force address to retain the balance
+	AddressRetainAmount string
 }
 
 func NewConfig(symbol string) *WalletConfig {
@@ -75,6 +77,8 @@ func NewConfig(symbol string) *WalletConfig {
 	c.FixFees = "0"
 	//ValidRounds counts
 	c.ValidRounds = 1000
+	c.AddressRetainAmount = "0.1"
+
 	//创建目录
 	file.MkdirAll(c.dbPath)
 

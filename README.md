@@ -15,6 +15,8 @@ ServerToken = ""
 FixFees = 0.001
 # ValidRounds limits valid rounds delay count
 ValidRounds = 1000
+# force address to retain the balance
+AddressRetainAmount = 0.1
 
 ```
 

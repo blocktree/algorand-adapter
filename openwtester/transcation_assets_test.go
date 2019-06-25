@@ -132,7 +132,7 @@ func TestTransfer_ALGO(t *testing.T) {
 
 	for i := 0; i < 1; i++ {
 
-		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "0.123456", "", "hello algorand", nil)
+		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "2.9", "", "hello algorand", nil)
 		if err != nil {
 			return
 		}

@@ -57,6 +57,7 @@ func (wm *WalletManager) LoadAssetsConfig(c config.Configer) error {
 	wm.Config.FixFees = c.String("FixFees")
 	validRounds, _ := strconv.ParseUint(c.String("ValidRounds"), 10, 64)
 	wm.Config.ValidRounds = validRounds
+	wm.Config.AddressRetainAmount = c.String("AddressRetainAmount")
 
 	client, _ := algod.MakeClient(wm.Config.ServerAPI, wm.Config.ServerToken)
 	wm.client = &client

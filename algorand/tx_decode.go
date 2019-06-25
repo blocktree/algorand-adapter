@@ -44,6 +44,7 @@ func (decoder *TransactionDecoder) CreateRawTransaction(wrapper openwallet.Walle
 		accountID       = rawTx.Account.AccountID
 		estimateFees    = big.NewInt(0)
 		findAddrBalance *AddrBalance
+		retainAmount    = decoder.wm.Config.AddressRetainAmount
 	)
 
 	//获取wallet
@@ -63,6 +64,7 @@ func (decoder *TransactionDecoder) CreateRawTransaction(wrapper openwallet.Walle
 	}
 
 	amount := common.StringNumToBigIntWithExp(amountStr, decimals)
+	forceRetainAmount := common.StringNumToBigIntWithExp(retainAmount, decimals)
 
 	if len(rawTx.FeeRate) > 0 {
 		estimateFees = common.StringNumToBigIntWithExp(rawTx.FeeRate, decimals)
@@ -84,6 +86,7 @@ func (decoder *TransactionDecoder) CreateRawTransaction(wrapper openwallet.Walle
 		//总消耗数量 = 转账数量 + 手续费
 		totalAmount := new(big.Int)
 		totalAmount.Add(amount, estimateFees)
+		totalAmount.Add(amount, forceRetainAmount)
 
 		//余额不足查找下一个地址
 		if balanceAmount.Cmp(totalAmount) < 0 {
@@ -96,7 +99,7 @@ func (decoder *TransactionDecoder) CreateRawTransaction(wrapper openwallet.Walle
 	}
 
 	if findAddrBalance == nil {
-		return fmt.Errorf("all address's balance of account is not enough")
+		return fmt.Errorf("all address's balance of account is not enough, an address required to retain at least %v algos", retainAmount)
 	}
 
 	parmas, err := decoder.wm.client.SuggestedParams()
