@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"strconv"
 	"time"
@@ -54,7 +53,7 @@ func (decoder *TransactionDecoder) CreateRawTransaction(wrapper openwallet.Walle
 	}
 
 	if len(addresses) == 0 {
-		return fmt.Errorf("[%s] have not addresses", accountID)
+		return openwallet.Errorf(openwallet.ErrCreateRawTransactionFailed, "[%s] have not addresses", accountID)
 	}
 
 	var amountStr string
@@ -99,12 +98,12 @@ func (decoder *TransactionDecoder) CreateRawTransaction(wrapper openwallet.Walle
 	}
 
 	if findAddrBalance == nil {
-		return fmt.Errorf("all address's balance of account is not enough, an address required to retain at least %v algos", retainAmount)
+		return openwallet.Errorf(openwallet.ErrInsufficientBalanceOfAccount, "all address's balance of account is not enough, an address required to retain at least %s algos", retainAmount)
 	}
 
 	parmas, err := decoder.wm.client.SuggestedParams()
 	if err != nil {
-		return fmt.Errorf("gets the suggested transaction parameters fail", err)
+		return openwallet.Errorf(openwallet.ErrCallFullNodeAPIFailed, "gets the suggested transaction parameters fail", err)
 	}
 
 	//最后创建交易单
@@ -129,7 +128,7 @@ func (decoder *TransactionDecoder) SignRawTransaction(wrapper openwallet.WalletD
 	)
 
 	if rawTx.Signatures == nil || len(rawTx.Signatures) == 0 {
-		return fmt.Errorf("transaction signature is empty")
+		return openwallet.Errorf(openwallet.ErrCreateRawTransactionFailed, "transaction signature is empty")
 	}
 
 	key, err := wrapper.HDKey()
@@ -151,18 +150,18 @@ func (decoder *TransactionDecoder) SignRawTransaction(wrapper openwallet.WalletD
 
 			msg, err := hex.DecodeString(keySignature.Message)
 			if err != nil {
-				return fmt.Errorf("decoder transaction hash failed, unexpected err: %v", err)
+				return openwallet.Errorf(openwallet.ErrCreateRawTransactionFailed, "decoder transaction hash failed, unexpected err: %v", err)
 			}
 
 			sig, err := txsigner.Default.SignTransactionHash(msg, keyBytes, keySignature.EccType)
 			if err != nil {
-				return fmt.Errorf("sign transaction hash failed, unexpected err: %v", err)
+				return openwallet.Errorf(openwallet.ErrCreateRawTransactionFailed, "sign transaction hash failed, unexpected err: %v", err)
 			}
 
 			rawHex, _ := hex.DecodeString(rawTx.RawHex)
 			err = json.Unmarshal(rawHex, &txn)
 			if err != nil {
-				return fmt.Errorf("raw tx Unmarshal failed", err)
+				return openwallet.Errorf(openwallet.ErrCreateRawTransactionFailed, "raw tx Unmarshal failed", err)
 			}
 
 			decoder.wm.Log.Debugf("message: %s", hex.EncodeToString(msg))
@@ -191,7 +190,7 @@ func (decoder *TransactionDecoder) VerifyRawTransaction(wrapper openwallet.Walle
 
 	if rawTx.Signatures == nil || len(rawTx.Signatures) == 0 {
 		//this.wm.Log.Std.Error("len of signatures error. ")
-		return fmt.Errorf("transaction signature is empty")
+		return openwallet.Errorf(openwallet.ErrVerifyRawTransactionFailed, "transaction signature is empty")
 	}
 
 	//支持多重签名
@@ -206,13 +205,13 @@ func (decoder *TransactionDecoder) VerifyRawTransaction(wrapper openwallet.Walle
 			// 验证签名
 			ret := owcrypt.Verify(publicKey, nil, 0, messsage, uint16(len(messsage)), signature, keySignature.EccType)
 			if ret != owcrypt.SUCCESS {
-				return fmt.Errorf("transaction verify failed")
+				return openwallet.Errorf(openwallet.ErrVerifyRawTransactionFailed, "transaction verify failed")
 			}
 
 			rawHex, _ := hex.DecodeString(rawTx.RawHex)
 			err := json.Unmarshal(rawHex, &txn)
 			if err != nil {
-				return fmt.Errorf("raw tx Unmarshal failed", err)
+				return openwallet.Errorf(openwallet.ErrVerifyRawTransactionFailed, "raw tx Unmarshal failed", err)
 			}
 
 			copy(sig[:], signature[:])
@@ -291,7 +290,7 @@ func (decoder *TransactionDecoder) CreateSummaryRawTransaction(wrapper openwalle
 	)
 
 	if minTransfer.Cmp(retainedBalance) < 0 {
-		return nil, fmt.Errorf("mini transfer amount must be greater than address retained balance")
+		return nil, openwallet.Errorf(openwallet.ErrInsufficientBalanceOfAccount, "mini transfer amount must be greater than address retained balance")
 	}
 
 	if len(sumRawTx.FeeRate) > 0 {
@@ -308,7 +307,7 @@ func (decoder *TransactionDecoder) CreateSummaryRawTransaction(wrapper openwalle
 	}
 
 	if len(addresses) == 0 {
-		return nil, fmt.Errorf("[%s] have not addresses", accountID)
+		return nil, openwallet.Errorf(openwallet.ErrCreateRawTransactionFailed, "[%s] have not addresses", accountID)
 	}
 
 	for _, addr := range addresses {
@@ -354,7 +353,7 @@ func (decoder *TransactionDecoder) CreateSummaryRawTransaction(wrapper openwalle
 
 		parmas, err := decoder.wm.client.SuggestedParams()
 		if err != nil {
-			return nil, fmt.Errorf("gets the suggested transaction parameters fail", err)
+			return nil, openwallet.Errorf(openwallet.ErrCallFullNodeAPIFailed, "gets the suggested transaction parameters fail", err)
 		}
 
 		findAddrBalance := NewAddrBalance(account[0])
