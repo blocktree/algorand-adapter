@@ -5,3 +5,4 @@ release
 *.key
 *.ini
 go.sum
+*.so
