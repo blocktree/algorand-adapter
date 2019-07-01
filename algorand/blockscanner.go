@@ -645,9 +645,10 @@ func (bs *AlgoBlockScanner) InitExtractResult(transaction *Transaction, sourceKe
 		IsContract: false,
 	}
 	amount = common.IntToDecimals(int64(transaction.Payment.Amount), bs.wm.Decimal())
+	fees := common.IntToDecimals(int64(transaction.Fee), bs.wm.Decimal())
 
 	transx := &openwallet.Transaction{
-		Fees:        "0",
+		Fees:        fees.String(),
 		Coin:        coin,
 		BlockHash:   transaction.BlockHash,
 		BlockHeight: transaction.BlockHeight,
