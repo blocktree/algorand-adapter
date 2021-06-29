@@ -203,7 +203,7 @@ func (decoder *TransactionDecoder) VerifyRawTransaction(wrapper openwallet.Walle
 			publicKey, _ := hex.DecodeString(keySignature.Address.PublicKey)
 
 			// 验证签名
-			ret := owcrypt.Verify(publicKey, nil, 0, messsage, uint16(len(messsage)), signature, keySignature.EccType)
+			ret := owcrypt.Verify(publicKey, nil, messsage, signature, keySignature.EccType)
 			if ret != owcrypt.SUCCESS {
 				return openwallet.Errorf(openwallet.ErrVerifyRawTransactionFailed, "transaction verify failed")
 			}
